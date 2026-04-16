@@ -1,10 +1,23 @@
 import { supabase } from '@/lib/supabase'
 
 export default async function Home() {
-  const { data: leads } = await supabase
-    .from('seller_leads')
-    .select('*')
-    .order('created_at', { ascending: false })
+  let leads: Record<string, string>[] | null = null
+  let errorMessage: string | null = null
+
+  try {
+    const { data, error } = await supabase
+      .from('seller_leads')
+      .select('*')
+      .order('created_at', { ascending: false })
+
+    if (error) {
+      errorMessage = error.message
+    } else {
+      leads = data
+    }
+  } catch {
+    errorMessage = 'Kan geen verbinding maken met de database. Probeer het later opnieuw.'
+  }
 
   const totalLeads = leads?.length || 0
 
@@ -14,6 +27,13 @@ export default async function Home() {
         <h1 className="text-4xl font-bold mb-2">Broker Revenue OS</h1>
         <p className="text-gray-400 mb-8">Live dashboard van jouw leadsysteem</p>
 
+        {errorMessage && (
+          <div className="bg-red-900/50 border border-red-700 rounded-xl p-6 mb-8">
+            <p className="text-red-300 font-semibold">Er is een fout opgetreden</p>
+            <p className="text-red-400 text-sm mt-1">{errorMessage}</p>
+          </div>
+        )}
+
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
           <div className="bg-gray-900 border border-gray-800 rounded-xl p-6">
             <p className="text-gray-400 text-sm">Totaal Leads</p>
@@ -22,19 +42,29 @@ export default async function Home() {
 
           <div className="bg-gray-900 border border-gray-800 rounded-xl p-6">
             <p className="text-gray-400 text-sm">Status</p>
-            <p className="text-2xl font-semibold mt-2 text-green-400">Online</p>
+            {errorMessage ? (
+              <p className="text-2xl font-semibold mt-2 text-red-400">Fout</p>
+            ) : (
+              <p className="text-2xl font-semibold mt-2 text-green-400">Online</p>
+            )}
           </div>
 
           <div className="bg-gray-900 border border-gray-800 rounded-xl p-6">
             <p className="text-gray-400 text-sm">Database</p>
-            <p className="text-2xl font-semibold mt-2 text-blue-400">Supabase gekoppeld</p>
+            {errorMessage ? (
+              <p className="text-2xl font-semibold mt-2 text-red-400">Niet verbonden</p>
+            ) : (
+              <p className="text-2xl font-semibold mt-2 text-blue-400">Supabase gekoppeld</p>
+            )}
           </div>
         </div>
 
         <div className="bg-gray-900 border border-gray-800 rounded-xl p-6">
           <h2 className="text-xl font-semibold mb-4">Recente leads</h2>
 
-          {!leads || leads.length === 0 ? (
+          {errorMessage ? (
+            <p className="text-gray-400">Leads kunnen niet worden geladen vanwege een fout.</p>
+          ) : !leads || leads.length === 0 ? (
             <p className="text-gray-400">Nog geen leads gevonden.</p>
           ) : (
             <div className="space-y-3">
